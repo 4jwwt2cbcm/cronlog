@@ -1,61 +1,49 @@
+// Package logentry defines the core log entry type used throughout cronlog.
 package logentry
 
 import (
+	"strings"
 	"time"
 )
 
-// Level represents the severity level of a log entry.
-type Level string
-
-const (
-	LevelInfo  Level = "INFO"
-	LevelWarn  Level = "WARN"
-	LevelError Level = "ERROR"
-	LevelDebug Level = "DEBUG"
-)
-
-// Entry represents a single structured log entry from a cron job.
+// Entry represents a single recorded execution of a cron job.
 type Entry struct {
-	ID        string            `json:"id"`
-	JobName   string            `json:"job_name"`
-	Timestamp time.Time         `json:"timestamp"`
-	Level     Level             `json:"level"`
-	Message   string            `json:"message"`
-	ExitCode  int               `json:"exit_code"`
-	Duration  time.Duration     `json:"duration_ms"`
-	Meta      map[string]string `json:"meta,omitempty"`
+	ID        string        `json:"id"`
+	Job       string        `json:"job"`
+	Output    string        `json:"output"`
+	ExitCode  int           `json:"exit_code"`
+	Duration  time.Duration `json:"duration"`
+	Timestamp time.Time     `json:"timestamp"`
 }
 
-// IsError returns true if the entry represents a failed job execution.
-func (e *Entry) IsError() bool {
-	return e.Level == LevelError || e.ExitCode != 0
+// New constructs an Entry with the current timestamp and a generated ID.
+func New(job, output string, exitCode int, duration time.Duration) Entry {
+	return Entry{
+		ID:        generateID(),
+		Job:       job,
+		Output:    output,
+		ExitCode:  exitCode,
+		Duration:  duration,
+		Timestamp: time.Now().UTC(),
+	}
 }
 
-// Filter holds criteria for querying log entries.
-type Filter struct {
-	JobName  string
-	Level    Level
-	Since    time.Time
-	Until    time.Time
-	ExitCode *int
+// IsError reports whether the entry represents a failed job execution.
+func (e Entry) IsError() bool {
+	return e.ExitCode != 0
 }
 
-// Matches returns true if the entry satisfies all non-zero filter criteria.
-func (f *Filter) Matches(e *Entry) bool {
-	if f.JobName != "" && e.JobName != f.JobName {
-		return false
+// FilterMatches reports whether the entry satisfies the given filter string.
+// An empty filter matches all entries.
+func (e Entry) FilterMatches(filter string) bool {
+	if filter == "" {
+		return true
 	}
-	if f.Level != "" && e.Level != f.Level {
-		return false
-	}
-	if !f.Since.IsZero() && e.Timestamp.Before(f.Since) {
-		return false
-	}
-	if !f.Until.IsZero() && e.Timestamp.After(f.Until) {
-		return false
-	}
-	if f.ExitCode != nil && e.ExitCode != *f.ExitCode {
-		return false
-	}
-	return true
+	return strings.Contains(e.Job, filter) ||
+		strings.Contains(e.Output, filter)
+}
+
+// generateID returns a simple unique identifier based on current time.
+func generateID() string {
+	return time.Now().UTC().Format("20060102150405.000000000")
 }
