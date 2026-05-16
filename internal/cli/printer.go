@@ -33,20 +33,24 @@ func (p *Printer) Print(entries []logentry.Entry) error {
 
 func (p *Printer) printText(entries []logentry.Entry) error {
 	tw := tabwriter.NewWriter(p.w, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "ID\tJOB\tSTATUS\tSTARTED\tDURATION")
+	if _, err := fmt.Fprintln(tw, "ID\tJOB\tSTATUS\tSTARTED\tDURATION"); err != nil {
+		return err
+	}
 	for _, e := range entries {
 		status := "ok"
 		if e.IsError() {
 			status = "error"
 		}
 		dur := e.FinishedAt.Sub(e.StartedAt).Round(time.Millisecond)
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n",
+		if _, err := fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n",
 			e.ID,
 			e.JobName,
 			status,
 			e.StartedAt.Format(time.RFC3339),
 			dur,
-		)
+		); err != nil {
+			return err
+		}
 	}
 	return tw.Flush()
 }
