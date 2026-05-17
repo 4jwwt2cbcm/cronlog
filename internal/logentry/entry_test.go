@@ -72,3 +72,28 @@ func TestFilterMatches(t *testing.T) {
 		})
 	}
 }
+
+func TestFilterMatchesNonMatchingExitCode(t *testing.T) {
+	now := time.Now()
+	exit0 := 0
+	exit2 := 2
+
+	entry := newEntry("backup", logentry.LevelError, 1, now)
+
+	tests := []struct {
+		name   string
+		filter logentry.Filter
+		want   bool
+	}{
+		{"non-matching exit code zero", logentry.Filter{ExitCode: &exit0}, false},
+		{"non-matching exit code two", logentry.Filter{ExitCode: &exit2}, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.filter.Matches(entry); got != tt.want {
+				t.Errorf("Matches() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
