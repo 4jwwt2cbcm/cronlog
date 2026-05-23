@@ -21,5 +21,8 @@
 //		Since:   time.Now().Add(-24 * time.Hour),
 //	})
 //
+//	// Remove entries older than 30 days.
+//	_ = s.Prune(time.Now().Add(-30 * 24 * time.Hour))
+//
 // The Store is safe for concurrent use by multiple goroutines.
 package storage
